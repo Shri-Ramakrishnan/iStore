@@ -63,7 +63,15 @@ export default function Home() {
             <p className="text-neutral-600 mt-3">
               Lighter. Faster. Always iconic.
             </p>
-            <div className="mt-6 h-48 rounded-xl bg-white border border-neutral-200"></div>
+            <div className="mt-6 h-48 rounded-xl bg-white border border-neutral-200 flex items-center justify-center overflow-hidden">
+  {featuredIphones.length > 0 && (
+    <img
+      src={featuredIphones[0].image}
+      alt={featuredIphones[0].name}
+      className="h-full object-contain"
+    />
+  )}
+</div>
           </div>
         </div>
       </section>
