@@ -1,0 +1,20 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-family: "SF Pro Text", ui-sans-serif, system-ui;
+  background-color: #ffffff;
+}
+
+.container-page {
+  @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.card {
+  @apply bg-white border border-neutral-200 rounded-2xl shadow-sm;
+}
