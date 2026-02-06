@@ -8,7 +8,9 @@ const emptyForm = {
   color: "",
   images: "",
   description: "",
-  stock: ""
+  stock: "",
+  category: "iphone",
+  series: "iphone-15"
 };
 
 export default function AdminDashboard() {
@@ -16,14 +18,19 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [message, setMessage] = useState("");
 
   const loadData = async () => {
-    const [productsRes, ordersRes] = await Promise.all([
-      api.get("/products"),
-      api.get("/admin/orders")
-    ]);
-    setProducts(productsRes.data);
-    setOrders(ordersRes.data);
+    try {
+      const [productsRes, ordersRes] = await Promise.all([
+        api.get("/products"),
+        api.get("/admin/orders")
+      ]);
+      setProducts(productsRes.data);
+      setOrders(ordersRes.data);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
@@ -32,22 +39,44 @@ export default function AdminDashboard() {
 
   const submitProduct = async (e) => {
     e.preventDefault();
+    setMessage("");
+
+    const imagesArray = form.images
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     const payload = {
-      ...form,
+      name: form.model,
+      model: form.model,
+      category: form.category,
+      series: form.series,
       price: Number(form.price),
-      stock: Number(form.stock),
-      images: form.images.split(",").map((s) => s.trim())
+      description: form.description,
+      images: imagesArray,
+      image: imagesArray[0],
+      storage: form.storage,
+      color: form.color,
+      countInStock: Number(form.stock),
+      stock: Number(form.stock)
     };
 
-    if (editingId) {
-      await api.put(`/admin/products/${editingId}`, payload);
-    } else {
-      await api.post("/admin/products", payload);
-    }
+    try {
+      if (editingId) {
+        await api.put(`/admin/products/${editingId}`, payload);
+        setMessage("✅ Product updated successfully");
+      } else {
+        await api.post("/admin/products", payload);
+        setMessage("✅ Product created successfully");
+      }
 
-    setForm(emptyForm);
-    setEditingId(null);
-    loadData();
+      setForm(emptyForm);
+      setEditingId(null);
+      loadData();
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Operation failed. Check inputs.");
+    }
   };
 
   const editProduct = (p) => {
@@ -55,113 +84,152 @@ export default function AdminDashboard() {
     setForm({
       model: p.model,
       price: p.price,
-      storage: p.storage,
-      color: p.color,
-      images: p.images.join(", "),
-      description: p.description,
-      stock: p.stock
+      storage: p.storage || "",
+      color: p.color || "",
+      images: p.images?.join(", ") || "",
+      description: p.description || "",
+      stock: p.countInStock || "",
+      category: p.category || "iphone",
+      series: p.series || "iphone-15"
     });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const deleteProduct = async (id) => {
-    await api.delete(`/admin/products/${id}`);
-    loadData();
+    if (!confirm("Delete this product?")) return;
+    try {
+      await api.delete(`/admin/products/${id}`);
+      setMessage("🗑️ Product deleted");
+      loadData();
+    } catch (err) {
+      setMessage("❌ Delete failed");
+    }
   };
 
   return (
     <div className="container-page py-10">
       <h2 className="text-2xl font-semibold">Admin Dashboard</h2>
 
+      {message && (
+        <div className="mt-4 text-sm text-green-600">{message}</div>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-8 mt-6">
+        {/* FORM */}
         <form onSubmit={submitProduct} className="card p-6 space-y-3">
-          <div className="font-semibold">{editingId ? "Edit Product" : "Add Product"}</div>
+          <div className="font-semibold">
+            {editingId ? "Edit Product" : "Add Product"}
+          </div>
+
           <input
-            className="w-full border border-neutral-300 rounded-xl px-4 py-2"
             placeholder="Model"
             value={form.model}
             onChange={(e) => setForm({ ...form, model: e.target.value })}
+            className="border rounded px-3 py-2"
             required
           />
+
           <input
-            className="w-full border border-neutral-300 rounded-xl px-4 py-2"
             placeholder="Price"
             value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
+            className="border rounded px-3 py-2"
             required
           />
+
+          <select
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+            className="border rounded px-3 py-2"
+          >
+            <option value="iphone">iPhone</option>
+            <option value="macbook">MacBook</option>
+            <option value="ipad">iPad</option>
+            <option value="airpods">AirPods</option>
+            <option value="watch">Watch</option>
+          </select>
+
+          <select
+            value={form.series}
+            onChange={(e) => setForm({ ...form, series: e.target.value })}
+            className="border rounded px-3 py-2"
+          >
+            <option value="iphone-15">iPhone 15</option>
+            <option value="iphone-14">iPhone 14</option>
+            <option value="iphone-13">iPhone 13</option>
+            <option value="iphone-se">iPhone SE</option>
+            <option value="macbook-air">MacBook Air</option>
+            <option value="macbook-pro">MacBook Pro</option>
+            <option value="ipad-pro">iPad Pro</option>
+            <option value="airpods">AirPods</option>
+            <option value="watch-series">Apple Watch</option>
+          </select>
+
           <input
-            className="w-full border border-neutral-300 rounded-xl px-4 py-2"
             placeholder="Storage"
             value={form.storage}
             onChange={(e) => setForm({ ...form, storage: e.target.value })}
-            required
+            className="border rounded px-3 py-2"
           />
+
           <input
-            className="w-full border border-neutral-300 rounded-xl px-4 py-2"
             placeholder="Color"
             value={form.color}
             onChange={(e) => setForm({ ...form, color: e.target.value })}
-            required
+            className="border rounded px-3 py-2"
           />
+
           <input
-            className="w-full border border-neutral-300 rounded-xl px-4 py-2"
             placeholder="Images (comma separated URLs)"
             value={form.images}
             onChange={(e) => setForm({ ...form, images: e.target.value })}
+            className="border rounded px-3 py-2"
             required
           />
+
           <input
-            className="w-full border border-neutral-300 rounded-xl px-4 py-2"
             placeholder="Description"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            required
+            className="border rounded px-3 py-2"
           />
+
           <input
-            className="w-full border border-neutral-300 rounded-xl px-4 py-2"
             placeholder="Stock"
             value={form.stock}
             onChange={(e) => setForm({ ...form, stock: e.target.value })}
+            className="border rounded px-3 py-2"
             required
           />
-          <button className="px-6 py-3 rounded-full bg-black text-white text-sm">
+
+          <button className="bg-black text-white px-6 py-2 rounded-full">
             {editingId ? "Update" : "Create"}
           </button>
         </form>
 
-        <div className="space-y-4">
-          <div className="card p-4">
-            <div className="font-semibold">Products</div>
-            <div className="mt-4 space-y-2 text-sm">
-              {products.map((p) => (
-                <div key={p._id} className="flex justify-between items-center">
-                  <div>
-                    <div className="font-medium">{p.model}</div>
-                    <div className="text-neutral-500">${p.price}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="text-sm underline" onClick={() => editProduct(p)}>
-                      Edit
-                    </button>
-                    <button className="text-sm text-red-500" onClick={() => deleteProduct(p._id)}>
-                      Delete
-                    </button>
-                  </div>
+        {/* PRODUCTS LIST */}
+        <div className="card p-4">
+          <div className="font-semibold">Products</div>
+          <div className="mt-4 space-y-2 text-sm">
+            {products.map((p) => (
+              <div key={p._id} className="flex justify-between">
+                <div>
+                  <div className="font-medium">{p.model}</div>
+                  <div className="text-neutral-500">${p.price}</div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <div className="font-semibold">Orders</div>
-            <div className="mt-4 space-y-2 text-sm">
-              {orders.map((o) => (
-                <div key={o._id} className="flex justify-between">
-                  <span>{o.user?.name || "User"}</span>
-                  <span>${o.totalPrice}</span>
+                <div className="flex gap-2">
+                  <button onClick={() => editProduct(p)} className="underline">
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteProduct(p._id)}
+                    className="text-red-500"
+                  >
+                    Delete
+                  </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
