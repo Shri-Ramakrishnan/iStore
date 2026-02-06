@@ -56,7 +56,6 @@ export default function Checkout() {
             <label className="text-sm text-neutral-600">Shipping Address</label>
             <input
               className="mt-2 w-full border border-neutral-300 rounded-xl px-4 py-2"
-              placeholder="123 Apple St, Cupertino"
               required
             />
           </div>
@@ -64,7 +63,6 @@ export default function Checkout() {
             <label className="text-sm text-neutral-600">Payment</label>
             <input
               className="mt-2 w-full border border-neutral-300 rounded-xl px-4 py-2"
-              placeholder="Dummy card 4242 4242 4242 4242"
               required
             />
           </div>
