@@ -317,9 +317,9 @@ const products = [
     isFeatured: false,
     price: 1099,
     description: "Incredibly thin. Shockingly powerful. Built for everywhere.",
-    image: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/macbook-air-13-and-15-m2-select-202306-midnight?wid=640&hei=550&fmt=png-alpha&.v=1684281415942",
+    image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8",
     images: [
-      "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/macbook-air-13-and-15-m2-select-202306-midnight?wid=640&hei=550&fmt=png-alpha&.v=1684281415942"
+      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8"
     ],
     storageOptions: ["256GB", "512GB", "1TB"],
     colorOptions: ["Midnight", "Starlight", "Silver", "Space Gray"],
@@ -336,9 +336,9 @@ const products = [
     isFeatured: false,
     price: 1299,
     description: "A larger canvas. The same legendary Air performance.",
-    image: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/macbook-air-13-and-15-m2-select-202306-starlight?wid=640&hei=550&fmt=png-alpha&.v=1684281415952",
+    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853",
     images: [
-      "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/macbook-air-13-and-15-m2-select-202306-starlight?wid=640&hei=550&fmt=png-alpha&.v=1684281415952"
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853"
     ],
     storageOptions: ["256GB", "512GB", "1TB"],
     colorOptions: ["Starlight", "Midnight", "Silver", "Space Gray"],
