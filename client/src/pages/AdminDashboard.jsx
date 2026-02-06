@@ -190,7 +190,9 @@ export default function AdminDashboard() {
           <input
             placeholder="Description"
             value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, description: e.target.value })
+            }
             className="border rounded px-3 py-2"
           />
 
@@ -218,7 +220,10 @@ export default function AdminDashboard() {
                   <div className="text-neutral-500">${p.price}</div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => editProduct(p)} className="underline">
+                  <button
+                    onClick={() => editProduct(p)}
+                    className="underline"
+                  >
                     Edit
                   </button>
                   <button
@@ -232,6 +237,52 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* ORDER HISTORY */}
+      <div className="card p-6 mt-10">
+        <div className="font-semibold text-lg">Order History</div>
+
+        {orders.length === 0 ? (
+          <div className="mt-4 text-sm text-neutral-500">
+            No orders placed yet.
+          </div>
+        ) : (
+          <div className="mt-4 space-y-4 text-sm">
+            {orders.map((order) => (
+              <div
+                key={order._id}
+                className="border border-neutral-200 rounded-lg p-4"
+              >
+                <div className="font-medium">
+                  {order.user?.name}{" "}
+                  <span className="text-neutral-500">
+                    ({order.user?.email})
+                  </span>
+                </div>
+
+                <ul className="mt-2 space-y-1">
+                  {order.products.map((p, idx) => (
+                    <li key={idx} className="text-neutral-600">
+                      • {p.product?.model} × {p.qty} — ${p.price}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-2 flex justify-between font-medium">
+                  <span>Total: ${order.totalPrice}</span>
+                  <span className="text-xs text-neutral-500">
+                    {order.status}
+                  </span>
+                </div>
+
+                <div className="mt-1 text-xs text-neutral-400">
+                  {new Date(order.createdAt).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
