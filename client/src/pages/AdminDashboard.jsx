@@ -10,8 +10,13 @@ const emptyForm = {
   description: "",
   stock: "",
   category: "iphone",
-  series: "iphone-15"
+  series: "iphone-15",
+  isFeatured: false
 };
+
+const toINR = (value) => `₹ ${Number(value || 0).toLocaleString("en-IN")}`;
+
+const getErrorMessage = (err, fallback) => err?.response?.data?.message || fallback;
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState([]);
@@ -22,14 +27,11 @@ export default function AdminDashboard() {
 
   const loadData = async () => {
     try {
-      const [productsRes, ordersRes] = await Promise.all([
-        api.get("/products"),
-        api.get("/admin/orders")
-      ]);
+      const [productsRes, ordersRes] = await Promise.all([api.get("/products"), api.get("/admin/orders")]);
       setProducts(productsRes.data);
       setOrders(ordersRes.data);
     } catch (err) {
-      console.error(err);
+      setMessage(getErrorMessage(err, "Failed to load admin data"));
     }
   };
 
@@ -37,72 +39,107 @@ export default function AdminDashboard() {
     loadData();
   }, []);
 
-  const submitProduct = async (e) => {
-    e.preventDefault();
-    setMessage("");
+  const submitProduct = async (event) => {
+    event.preventDefault();
 
     const imagesArray = form.images
       .split(",")
-      .map((s) => s.trim())
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const storageOptions = form.storage
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const colorOptions = form.color
+      .split(",")
+      .map((item) => item.trim())
       .filter(Boolean);
 
     const payload = {
-      name: form.model,
-      model: form.model,
+      name: form.model.trim(),
+      model: form.model.trim(),
       category: form.category,
       series: form.series,
+      isFeatured: form.isFeatured,
       price: Number(form.price),
-      description: form.description,
+      description: form.description.trim(),
       images: imagesArray,
       image: imagesArray[0],
-      storage: form.storage,
-      color: form.color,
-      countInStock: Number(form.stock),
-      stock: Number(form.stock)
+      storageOptions: storageOptions.length ? storageOptions : [form.storage.trim()],
+      colorOptions: colorOptions.length ? colorOptions : [form.color.trim()],
+      storage: storageOptions[0] || form.storage.trim(),
+      color: colorOptions[0] || form.color.trim(),
+      stock: Number(form.stock),
+      countInStock: Number(form.stock)
     };
 
     try {
       if (editingId) {
         await api.put(`/admin/products/${editingId}`, payload);
-        setMessage("✅ Product updated successfully");
+        alert("Product updated successfully");
+        setMessage("Product updated successfully");
       } else {
         await api.post("/admin/products", payload);
-        setMessage("✅ Product created successfully");
+        alert("Product created successfully");
+        setMessage("Product created successfully");
       }
 
       setForm(emptyForm);
       setEditingId(null);
-      loadData();
+      await loadData();
     } catch (err) {
-      console.error(err);
-      setMessage("❌ Operation failed. Check inputs.");
+      const error = getErrorMessage(err, "Operation failed");
+      alert(error);
+      setMessage(error);
     }
   };
 
-  const editProduct = (p) => {
-    setEditingId(p._id);
+  const editProduct = (product) => {
+    setEditingId(product._id);
     setForm({
-      model: p.model,
-      price: p.price,
-      storage: p.storage || "",
-      color: p.color || "",
-      images: p.images?.join(", ") || "",
-      description: p.description || "",
-      stock: p.countInStock || "",
-      category: p.category || "iphone",
-      series: p.series || "iphone-15"
+      model: product.model || product.name || "",
+      price: product.price || "",
+      storage: product.storageOptions?.join(", ") || product.storage || "",
+      color: product.colorOptions?.join(", ") || product.color || "",
+      images: product.images?.join(", ") || product.image || "",
+      description: product.description || "",
+      stock: product.stock ?? product.countInStock ?? "",
+      category: product.category || "iphone",
+      series: product.series || "iphone-15",
+      isFeatured: Boolean(product.isFeatured)
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const deleteProduct = async (id) => {
-    if (!confirm("Delete this product?")) return;
+    if (!window.confirm("Delete this product?")) return;
+
     try {
       await api.delete(`/admin/products/${id}`);
-      setMessage("🗑️ Product deleted");
-      loadData();
+      alert("Product deleted successfully");
+      setMessage("Product deleted successfully");
+      await loadData();
     } catch (err) {
-      setMessage("❌ Delete failed");
+      const error = getErrorMessage(err, "Delete failed");
+      alert(error);
+      setMessage(error);
+    }
+  };
+
+  const cancelOrder = async (orderId) => {
+    if (!window.confirm("Cancel this order?")) return;
+
+    try {
+      const { data } = await api.put(`/orders/${orderId}/cancel`);
+      alert(data?.message || "Order Cancelled");
+      setMessage(data?.message || "Order Cancelled");
+      await loadData();
+    } catch (err) {
+      const error = getErrorMessage(err, "Failed to cancel order");
+      alert(error);
+      setMessage(error);
     }
   };
 
@@ -110,36 +147,33 @@ export default function AdminDashboard() {
     <div className="container-page py-10">
       <h2 className="text-2xl font-semibold">Admin Dashboard</h2>
 
-      {message && (
-        <div className="mt-4 text-sm text-green-600">{message}</div>
-      )}
+      {message && <div className="mt-4 text-sm text-neutral-700">{message}</div>}
 
       <div className="grid lg:grid-cols-2 gap-8 mt-6">
-        {/* FORM */}
         <form onSubmit={submitProduct} className="card p-6 space-y-3">
-          <div className="font-semibold">
-            {editingId ? "Edit Product" : "Add Product"}
-          </div>
+          <div className="font-semibold">{editingId ? "Edit Product" : "Add Product"}</div>
 
           <input
             placeholder="Model"
             value={form.model}
-            onChange={(e) => setForm({ ...form, model: e.target.value })}
+            onChange={(event) => setForm({ ...form, model: event.target.value })}
             className="border rounded px-3 py-2"
             required
           />
 
           <input
             placeholder="Price"
+            type="number"
+            min="0"
             value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            onChange={(event) => setForm({ ...form, price: event.target.value })}
             className="border rounded px-3 py-2"
             required
           />
 
           <select
             value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
+            onChange={(event) => setForm({ ...form, category: event.target.value })}
             className="border rounded px-3 py-2"
           >
             <option value="iphone">iPhone</option>
@@ -149,40 +183,34 @@ export default function AdminDashboard() {
             <option value="watch">Watch</option>
           </select>
 
-          <select
-            value={form.series}
-            onChange={(e) => setForm({ ...form, series: e.target.value })}
-            className="border rounded px-3 py-2"
-          >
-            <option value="iphone-15">iPhone 15</option>
-            <option value="iphone-14">iPhone 14</option>
-            <option value="iphone-13">iPhone 13</option>
-            <option value="iphone-se">iPhone SE</option>
-            <option value="macbook-air">MacBook Air</option>
-            <option value="macbook-pro">MacBook Pro</option>
-            <option value="ipad-pro">iPad Pro</option>
-            <option value="airpods">AirPods</option>
-            <option value="watch-series">Apple Watch</option>
-          </select>
-
           <input
-            placeholder="Storage"
-            value={form.storage}
-            onChange={(e) => setForm({ ...form, storage: e.target.value })}
+            placeholder="Series (e.g. iphone-15)"
+            value={form.series}
+            onChange={(event) => setForm({ ...form, series: event.target.value })}
             className="border rounded px-3 py-2"
+            required
           />
 
           <input
-            placeholder="Color"
-            value={form.color}
-            onChange={(e) => setForm({ ...form, color: e.target.value })}
+            placeholder="Storage (comma separated)"
+            value={form.storage}
+            onChange={(event) => setForm({ ...form, storage: event.target.value })}
             className="border rounded px-3 py-2"
+            required
+          />
+
+          <input
+            placeholder="Color (comma separated)"
+            value={form.color}
+            onChange={(event) => setForm({ ...form, color: event.target.value })}
+            className="border rounded px-3 py-2"
+            required
           />
 
           <input
             placeholder="Images (comma separated URLs)"
             value={form.images}
-            onChange={(e) => setForm({ ...form, images: e.target.value })}
+            onChange={(event) => setForm({ ...form, images: event.target.value })}
             className="border rounded px-3 py-2"
             required
           />
@@ -190,46 +218,49 @@ export default function AdminDashboard() {
           <input
             placeholder="Description"
             value={form.description}
-            onChange={(e) =>
-              setForm({ ...form, description: e.target.value })
-            }
+            onChange={(event) => setForm({ ...form, description: event.target.value })}
             className="border rounded px-3 py-2"
+            required
           />
 
           <input
             placeholder="Stock"
+            type="number"
+            min="0"
             value={form.stock}
-            onChange={(e) => setForm({ ...form, stock: e.target.value })}
+            onChange={(event) => setForm({ ...form, stock: event.target.value })}
             className="border rounded px-3 py-2"
             required
           />
+
+          <label className="flex items-center gap-2 text-sm text-neutral-700">
+            <input
+              type="checkbox"
+              checked={form.isFeatured}
+              onChange={(event) => setForm({ ...form, isFeatured: event.target.checked })}
+            />
+            Featured Product
+          </label>
 
           <button className="bg-black text-white px-6 py-2 rounded-full">
             {editingId ? "Update" : "Create"}
           </button>
         </form>
 
-        {/* PRODUCTS LIST */}
         <div className="card p-4">
           <div className="font-semibold">Products</div>
           <div className="mt-4 space-y-2 text-sm">
-            {products.map((p) => (
-              <div key={p._id} className="flex justify-between">
+            {products.map((product) => (
+              <div key={product._id} className="flex justify-between gap-3">
                 <div>
-                  <div className="font-medium">{p.model}</div>
-                  <div className="text-neutral-500">${p.price}</div>
+                  <div className="font-medium">{product.model || product.name}</div>
+                  <div className="text-neutral-500">{toINR(product.price)}</div>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => editProduct(p)}
-                    className="underline"
-                  >
+                  <button onClick={() => editProduct(product)} className="underline">
                     Edit
                   </button>
-                  <button
-                    onClick={() => deleteProduct(p._id)}
-                    className="text-red-500"
-                  >
+                  <button onClick={() => deleteProduct(product._id)} className="text-red-500">
                     Delete
                   </button>
                 </div>
@@ -239,46 +270,44 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ORDER HISTORY */}
       <div className="card p-6 mt-10">
         <div className="font-semibold text-lg">Order History</div>
 
         {orders.length === 0 ? (
-          <div className="mt-4 text-sm text-neutral-500">
-            No orders placed yet.
-          </div>
+          <div className="mt-4 text-sm text-neutral-500">No orders placed yet.</div>
         ) : (
           <div className="mt-4 space-y-4 text-sm">
             {orders.map((order) => (
-              <div
-                key={order._id}
-                className="border border-neutral-200 rounded-lg p-4"
-              >
+              <div key={order._id} className="border border-neutral-200 rounded-lg p-4">
                 <div className="font-medium">
                   {order.user?.name}{" "}
-                  <span className="text-neutral-500">
-                    ({order.user?.email})
-                  </span>
+                  <span className="text-neutral-500">({order.user?.email})</span>
                 </div>
 
                 <ul className="mt-2 space-y-1">
-                  {order.products.map((p, idx) => (
+                  {order.products.map((item, idx) => (
                     <li key={idx} className="text-neutral-600">
-                      • {p.product?.model} × {p.qty} — ${p.price}
+                      • {(item.product?.name || item.product?.model || "Product removed")} × {item.qty}
+                      {item.selectedColor ? ` (${item.selectedColor})` : ""} — {toINR(item.price)}
                     </li>
                   ))}
                 </ul>
 
-                <div className="mt-2 flex justify-between font-medium">
-                  <span>Total: ${order.totalPrice}</span>
-                  <span className="text-xs text-neutral-500">
-                    {order.status}
-                  </span>
+                <div className="mt-2 flex justify-between font-medium items-center">
+                  <span>Total: {toINR(order.totalPrice)}</span>
+                  <span className="text-xs text-neutral-500">{order.status}</span>
                 </div>
 
-                <div className="mt-1 text-xs text-neutral-400">
-                  {new Date(order.createdAt).toLocaleString()}
-                </div>
+                <div className="mt-1 text-xs text-neutral-400">{new Date(order.createdAt).toLocaleString()}</div>
+
+                {(order.status === "Processing" || order.status === "Paid") && (
+                  <button
+                    onClick={() => cancelOrder(order._id)}
+                    className="mt-3 text-xs px-3 py-1 rounded-full border border-neutral-300 hover:border-black"
+                  >
+                    Cancel Order
+                  </button>
+                )}
               </div>
             ))}
           </div>

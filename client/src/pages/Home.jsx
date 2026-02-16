@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
 import ProductCard from "../components/ProductCard";
 import Loader from "../components/Loader";
@@ -13,22 +13,33 @@ export default function Home() {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      const [iphoneRes, macRes, ipadRes, accessoriesRes] = await Promise.all([
-        api.get("/products?category=iphone"),
-        api.get("/products?category=macbook"),
-        api.get("/products?category=ipad"),
-        api.get("/products?category=airpods,watch")
-      ]);
+      try {
+        setLoading(true);
+        const [iphoneRes, macRes, ipadRes, accessoriesRes] = await Promise.all([
+          api.get("/products?category=iphone"),
+          api.get("/products?category=macbook"),
+          api.get("/products?category=ipad"),
+          api.get("/products?category=airpods,watch")
+        ]);
 
-      const featured = iphoneRes.data.filter((p) => p.isFeatured === true);
-      setFeaturedIphones(featured.slice(0, 4));
-      setMacProducts(macRes.data.slice(0, 4));
-      setIpadProducts(ipadRes.data.slice(0, 4));
-      setAccessories(accessoriesRes.data.slice(0, 4));
-      setLoading(false);
+        const featured = iphoneRes.data.filter(
+          (product) => product.isFeatured === true && product.series === "iphone-15"
+        );
+
+        setFeaturedIphones(featured);
+        setMacProducts(macRes.data.slice(0, 4));
+        setIpadProducts(ipadRes.data.slice(0, 4));
+        setAccessories(accessoriesRes.data.slice(0, 4));
+      } finally {
+        setLoading(false);
+      }
     };
+
     fetchProducts();
   }, []);
+
+  const heroProduct = useMemo(() => featuredIphones[0], [featuredIphones]);
+  const heroImage = heroProduct?.images?.[0] || heroProduct?.image || null;
 
   return (
     <div className="container-page">
@@ -36,42 +47,36 @@ export default function Home() {
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div>
             <p className="text-sm text-neutral-500">New season</p>
-            <h1 className="text-4xl md:text-5xl font-semibold leading-tight mt-2">
-              iPhones, refined.
-            </h1>
+            <h1 className="text-4xl md:text-5xl font-semibold leading-tight mt-2">iPhones, refined.</h1>
             <p className="mt-4 text-neutral-600 max-w-md">
               A curated Apple storefront with clean design and a simple checkout flow.
             </p>
             <div className="mt-6 flex gap-4">
-              <a
-                href="/products?category=iphone"
-                className="px-6 py-3 rounded-full bg-black text-white text-sm"
-              >
+              <a href="/products?category=iphone" className="px-6 py-3 rounded-full bg-black text-white text-sm">
                 Shop iPhones
               </a>
-              <a
-                href="/products?category=iphone"
-                className="px-6 py-3 rounded-full border border-neutral-300 text-sm"
-              >
+              <a href="/products?category=iphone" className="px-6 py-3 rounded-full border border-neutral-300 text-sm">
                 View all
               </a>
             </div>
           </div>
+
           <div className="card p-8 bg-apple-gray">
             <div className="text-sm text-neutral-500">Featured lineup</div>
             <h3 className="text-2xl font-semibold mt-2">iPhone 15 Series</h3>
-            <p className="text-neutral-600 mt-3">
-              Lighter. Faster. Always iconic.
-            </p>
-            <div className="mt-6 h-48 rounded-xl bg-white border border-neutral-200 flex items-center justify-center overflow-hidden">
-  {featuredIphones.length > 0 && (
-    <img
-      src={featuredIphones[0].image}
-      alt={featuredIphones[0].name}
-      className="h-full object-contain"
-    />
-  )}
-</div>
+            <p className="text-neutral-600 mt-3">Lighter. Faster. Always iconic.</p>
+
+            {heroImage ? (
+              <div className="mt-6 h-48 rounded-xl bg-white border border-neutral-200 flex items-center justify-center overflow-hidden">
+                <img
+                  src={heroImage}
+                  alt={heroProduct?.name || "iPhone 15 Series"}
+                  className="h-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="mt-6 text-sm text-neutral-500">Featured iPhone 15 products are not available right now.</div>
+            )}
           </div>
         </div>
       </section>
@@ -83,8 +88,8 @@ export default function Home() {
             <Loader />
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-              {featuredIphones.map((p) => (
-                <ProductCard key={p._id} product={p} />
+              {featuredIphones.slice(0, 4).map((product) => (
+                <ProductCard key={product._id} product={product} />
               ))}
             </div>
           )}
@@ -97,8 +102,8 @@ export default function Home() {
           <Loader />
         ) : macProducts.length ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-            {macProducts.map((p) => (
-              <ProductCard key={p._id} product={p} />
+            {macProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
             ))}
           </div>
         ) : (
@@ -112,8 +117,8 @@ export default function Home() {
           <Loader />
         ) : ipadProducts.length ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-            {ipadProducts.map((p) => (
-              <ProductCard key={p._id} product={p} />
+            {ipadProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
             ))}
           </div>
         ) : (
@@ -127,8 +132,8 @@ export default function Home() {
           <Loader />
         ) : accessories.length ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-            {accessories.map((p) => (
-              <ProductCard key={p._id} product={p} />
+            {accessories.map((product) => (
+              <ProductCard key={product._id} product={product} />
             ))}
           </div>
         ) : (
@@ -138,3 +143,4 @@ export default function Home() {
     </div>
   );
 }
+
